@@ -10,12 +10,19 @@ initializeApp({
 
 const sendMessage = async (message) => {
     if(message?.token!=undefined){
+        console.log('This is message::::::::::::::::::::::::::',message);
+
     for (let i = 0; i < message.token.length; i++) {
         await getMessaging()
             .send({
                 notification: {
                     title: message.title,
-                    body: message.body,
+                    body: JSON.stringify({
+                        text: message.body,
+                        senderId: message.senderId,
+                        appId: message.appId,
+                        channelName: message.channelName
+                      })
                 },
                 token: message.token[i],
             })

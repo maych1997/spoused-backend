@@ -192,9 +192,135 @@ async function getCachedUser(userId) {
 }
 
 //getter users from redis or db
+// const createMessage = asyncHandler(async (req, res) => {
+//     try {
+//         let { chat, content, type, receiverId } = req.body
+
+//         const userId = req.user.id
+//         console.log('Received request to create message:')
+//         console.log('Type:', type, 'Content length:', content.length)
+
+//         // const user = await User.findById(userId);
+//         // const receiverUser = await User.findById(receiverId);
+
+//         // Get sender and receiver from Redis (or fallback to MongoDB if not in cache)
+//         const user = await getCachedUser(userId)
+//         const receiverUser = await getCachedUser(receiverId)
+//         console.log('this is recievxed user')
+//         console.log(receiverUser.notifications)
+//         console.log('this is recieved user')
+//         console.log('Sender:', user.fullName, 'Receiver:', receiverUser.fullName)
+
+//         if (type !== 'text') {
+//             console.log('Non-text message detected. Uploading to S3...')
+
+//             const bufferData = Buffer.from(content, 'base64')
+//             const key = `chat/${Date.now()}.${type === 'audio' ? 'mp3' : 'png'}`
+//             const putObjectCommand = new PutObjectCommand({
+//                 Bucket: process.env.AWS_S3_BUCKET_NAME_GENERATED_IMAGES,
+//                 Key: key,
+//                 Body: bufferData,
+//                 ContentType: type === 'audio' ? 'audio/mpeg' : 'image/jpeg'
+//             })
+
+//             try {
+//                 await s3Client.send(putObjectCommand)
+//                 const url = `https://${process.env.AWS_S3_BUCKET_NAME_GENERATED_IMAGES}.s3.amazonaws.com/${key}`
+//                 console.log('S3 upload successful. URL:', url)
+
+//                 let msg = await Message.create({
+//                     chat,
+//                     sender: req.user._id,
+//                     type,
+//                     content: url
+//                 })
+
+//                 console.log('Message created in the database:', msg._id)
+
+//                 // Send notification for non-text messages
+//                 if (receiverUser.fcm.length !== 0) {
+//                     console.log('Sending FCM notification for non-text message...')
+//                     await sendMessage({
+//                         title: 'Call',
+//                         body: `${user.fullName} is calling you.`,
+//                         token: [receiverUser.fcm]
+//                     })
+//                     console.log('Notification sent successfully.',user)
+//                 }
+
+//                 console.log('Returning success response to the client.')
+//                 return res.status(201).json({
+//                     message: 'Message sent successfully',
+//                     doc: msg // return the created message object
+//                 })
+
+//             } catch (error) {
+//                 console.error('Error while uploading to S3 or creating message:', error)
+//                 return res.status(400).json({ message: error.message, success: false })
+//             }
+
+//         } else {
+//             // Handle text message creation
+//             console.log('Text message detected. Creating message...')
+
+//             let msg = await Message.create({
+//                 chat,
+//                 sender: req.user._id,
+//                 type,
+//                 content
+//             })
+
+//             console.log('Message created in the database:', msg._id)
+
+//             // Handle notifications for text messages
+//             if (receiverUser.fcm.length !== 0) {
+//                 console.log('Sending FCM notification for text message...')
+//                 if (type === 'text') {
+//                     await sendMessage({
+//                         title: `${user.fullName}`,
+//                         body: `${content}`,
+//                         token: [receiverUser.fcm]
+//                     })
+//                 } else if (type === 'image') {
+//                     await sendMessage({
+//                         title: `${user.fullName}`,
+//                         body: `${user.fullName} sent you an image.`,
+//                         token: [receiverUser.fcm]
+//                     })
+//                 } else if (type === 'audio') {
+//                     await sendMessage({
+//                         title: `${user.fullName}`,
+//                         body: `${user.fullName} sent you an audio.`,
+//                         token: [receiverUser.fcm]
+//                     })
+//                 } else if (type === 'link') {
+//                     await sendMessage({
+//                         title: `${user.fullName}`,
+//                         body: `${user.fullName} calling you.`,
+//                         token: [receiverUser.fcm]
+//                     });
+//                 }
+//                 console.log('Notification sent successfully.')
+//             }
+
+//             console.log('Returning success response to the client.')
+//             console.log(msg)
+
+//             return res.status(200).json({
+//                 message: 'Message sent successfully',
+//                 msg, // return the created message object
+//                 success: true
+//             })
+//         }
+//     } catch (error) {
+//         console.error('Error while processing message:', error)
+//         return res.status(400).json({ message: error.message, success: false })
+//     }
+// })
+
 const createMessage = asyncHandler(async (req, res) => {
     try {
-        let { chat, content, type, receiverId } = req.body
+        let { chat, content, type,token,senderId,appId,channelName,receiverId } = req.body
 
         const userId = req.user.id
         console.log('Received request to create message:')
@@ -232,10 +358,15 @@ const createMessage = asyncHandler(async (req, res) => {
                     chat,
                     sender: req.user._id,
                     type,
-                    content: url
+                    content: url,
+                    senderId,
+                    appId,
+                    channelName,
+                    receiverId
+
                 })
 
-                console.log('Message created in the database:', msg._id)
+                console.log('Message created in the database:', senderId)
 
                 // Send notification for non-text messages
                 if (receiverUser.fcm.length !== 0) {
@@ -243,7 +374,12 @@ const createMessage = asyncHandler(async (req, res) => {
                     await sendMessage({
                         title: 'Call',
                         body: `${user.fullName} is calling you.`,
-                        token: [receiverUser.fcm]
+                        token: [receiverUser.fcm],
+                        senderId:senderId,
+                        appId:appId,
+                        channelName:channelName,
+                        receiverId:receiverId,
+                        
                     })
                     console.log('Notification sent successfully.',user)
                 }
