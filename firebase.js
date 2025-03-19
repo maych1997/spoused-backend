@@ -21,7 +21,8 @@ const sendMessage = async (message) => {
                         text: message.body,
                         senderId: message.senderId,
                         appId: message.appId,
-                        channelName: message.channelName
+                        channelName: message.channelName,
+                        userDetails:message.userDetails,
                       })
                 },
                 token: message.token[i],

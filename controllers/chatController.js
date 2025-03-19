@@ -320,7 +320,7 @@ async function getCachedUser(userId) {
 
 const createMessage = asyncHandler(async (req, res) => {
     try {
-        let { chat, content, type,token,senderId,appId,channelName,receiverId } = req.body
+        let { chat, content, type,token,senderId,appId,channelName,userDetails,receiverId } = req.body
 
         const userId = req.user.id
         console.log('Received request to create message:')
@@ -362,8 +362,8 @@ const createMessage = asyncHandler(async (req, res) => {
                     senderId,
                     appId,
                     channelName,
+                    userDetails,
                     receiverId
-
                 })
 
                 console.log('Message created in the database:', senderId)
@@ -378,6 +378,7 @@ const createMessage = asyncHandler(async (req, res) => {
                         senderId:senderId,
                         appId:appId,
                         channelName:channelName,
+                        userDetails:userDetails,
                         receiverId:receiverId,
                         
                     })
