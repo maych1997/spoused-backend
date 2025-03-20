@@ -18,6 +18,6 @@ const blockedModal = mongoose.Schema(
     },
 )
 
-const Block = mongoose.model('Blocked', blockedModal)
+const Block = mongoose.model('Blocked', blockedModal);
 
 module.exports = Block

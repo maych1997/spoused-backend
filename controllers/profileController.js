@@ -1749,8 +1749,10 @@ exports.blockUser = async (req, res) => {
         }
 
         // Check if the user has already blocked this person
-        const existingBlock = await Block.findOne({ userId, blockedUserId })
+        const existingBlock = await Block.findOne({ userId, blockedUserId });
+        console.log("I am existing Block ::::::::::::::::::::::::::::::",existingBlock);
         if (existingBlock) {
+            console.log(userId+ ' Blocked ',blockedUserId);
             return res
                 .status(400)
                 .json({ success: false, message: 'User already blocked' })

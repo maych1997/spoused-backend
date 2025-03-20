@@ -67,50 +67,62 @@ const fetchChat = asyncHandler(async (req, res) => {
         const chatsData = await redisClient.lRange(`chats:${userId}`, 0, -1);
         const chats = chatsData.map(JSON.parse);
 
-        // No database access needed; data is fully populated
-        const result = chats.map((chat) => {
-            const otherUser = chat.users.find(user => user._id.toString() !== userId.toString());
-            console.log('this is other user');
-            console.log(otherUser);
-
-            const cachedUserData = redisClient.get(`user:${otherUser._id}`)
-                .then((data) => {
-                    const parsedData = JSON.parse(data);
-                    console.log('Cached User Data:', parsedData.photoPrivacy);
-
-                    return {
-                        ...chat,
-                        users: otherUser
-                            ? {
-                                _id: otherUser._id,
-                                fullName: otherUser.fullName,
-                                photos: otherUser.photos,
-                                email: otherUser.email,
-                                photoPrivacy: parsedData.photoPrivacy, // Add photoPrivacy here
-                            }
-                            : null,
-                        latestMessage: chat.latestMessage,
-                    };
-                })
-                .catch((error) => {
-                    console.error('Error fetching user from Redis:', error);
-                    return {
-                        ...chat,
-                        users: null,
-                        latestMessage: chat.latestMessage,
-                    };
-                });
-
-            return cachedUserData;
+        // Fetch blocked user IDs
+        const blockedUsers = await Block.find({
+            $or: [{ userId }, { blockedUserId: userId }]
         });
 
-        // Use Promise.all to wait for all promises to resolve
+        const blockedUserIds = blockedUsers?.map((block) =>
+            block.userId.toString() === userId.toString()
+                ? block.blockedUserId.toString()
+                : block.userId.toString()
+        );
+
+        console.log('Blocked User IDs:', blockedUserIds);
+
+        // Filter out blocked users
+        const filteredChats = chats.filter(chat => {
+            const otherUser = chat.users.find(user => user._id.toString() !== userId.toString());
+            return otherUser && !blockedUserIds.includes(otherUser._id.toString());
+        });
+
+        // Fetch user data from Redis and format the response
+        const result = filteredChats.map(async (chat) => {
+            const otherUser = chat.users.find(user => user._id.toString() !== userId.toString());
+
+            try {
+                const cachedUserData = await redisClient.get(`user:${otherUser._id}`);
+                const parsedData = cachedUserData ? JSON.parse(cachedUserData) : {};
+
+                return {
+                    ...chat,
+                    users: {
+                        _id: otherUser._id,
+                        fullName: otherUser.fullName,
+                        photos: otherUser.photos,
+                        email: otherUser.email,
+                        photoPrivacy: parsedData.photoPrivacy || null,
+                    },
+                    latestMessage: chat.latestMessage,
+                };
+            } catch (error) {
+                console.error('Error fetching user from Redis:', error);
+                return {
+                    ...chat,
+                    users: null,
+                    latestMessage: chat.latestMessage,
+                };
+            }
+        });
+
+        // Wait for all promises to resolve
         const finalResult = await Promise.all(result);
         res.status(200).send(finalResult);
     } catch (error) {
         res.status(400).send({ message: error.message });
     }
 });
+
 
 
 // const fetchChat = asyncHandler(async (req, res) => {
