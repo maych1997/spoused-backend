@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 // const dburi = "mongodb+srv://diksha:qpsj24IxaLcg4Kmy@getspoused.zn3qe.mongodb.net/?retryWrites=true&w=majority&appName=getSpoused"
-const dburi = 'mongodb+srv://diksha:qpsj24IxaLcg4Kmy@getspoused.zn3qe.mongodb.net'
+const dburi = 'mongodb://127.0.0.1:27017/mydatabase'
 // const connectDB = async () => {
 //
 //     const conn = await mongoose.connect(dburi, {

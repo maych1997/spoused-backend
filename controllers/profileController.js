@@ -410,7 +410,6 @@ exports.uploadUserPhotos = async (req, res) => {
         const rekognition = new AWS.Rekognition()
         const detectLabelsResponse = await rekognition.detectLabels(detectLabelsParams).promise()
         console.log('this is the detect labels')
-        console.log(detectLabelsParams)
         console.log('this is the detect labels')
         // Check if the 'Person' label exists
         const containsPerson = detectLabelsResponse.Labels.some(label => label.Name.toLowerCase() === 'person')
@@ -870,7 +869,7 @@ exports.updateUserProfile = async (req, res) => {
     try {
         const user = await User.findById(userId)
         console.log('this is when we found it ')
-        console.log(user.datingPreferences.partnerPreferences.religiosity)
+        // console.log(user.datingPreferences.partnerPreferences.religiosity)
         console.log('this is when we found it ')
         if (!user) {
             return res.status(404).json({ message: 'User not found', success: false })
@@ -1298,53 +1297,59 @@ exports.updateTravelModeAndLocation = async (req, res) => {
 
 exports.getMyProfile = async (req, res) => {
     try {
-        // Fetch the user document first to check travelMode.toggle
-        const user = await User.findById(req.user.id)
+        const userId = req.user?.id;
+        if (!userId) {
+            console.log('I am here1');
+            return res.status(400).json({ success: false, error: 'User ID is missing' });
+        }
 
-        // If user not found
+        const user = await User.findById(userId);
+
         if (!user) {
-            return res
-                .status(404)
-                .json({ success: false, error: 'User not found' })
+            return res.status(404).json({ success: false, error: 'User not found' });
         }
 
-        // If user.travelMode.toggle is false, then update the coordinates
-        if (!user.travelMode.toggle) {
-            const updatedUser = await User.findByIdAndUpdate(
-                req.user.id,
-                {
-                    locationCoordinates: {
-                        type: 'Point',
-                        coordinates: req.body.coordinates
-                    }
-                },
-                { new: true }
-            )
+        // If travelMode.toggle is false, update the coordinates
+        console.log('I am here6');
+        if (!user.travelMode?.toggle) {
+            console.log('I am here2');
+            const { coordinates } = req.body;
 
-            // Return the updated user
-            return res.status(200).json({ success: true, data: updatedUser })
+            if (!coordinates || !Array.isArray(coordinates) || coordinates.length !== 2) {
+                console.log('I am here3');
+                return res.status(400).json({ success: false, error: 'Invalid coordinates' });
+            }
+            console.log('I am here4');
+            user.locationCoordinates = { type: 'Point', coordinates };
+            console.log('I am here5');
+            await user.save();
         }
 
-        // If user.travelMode.toggle is true, do not update the coordinates, return the user as is
-        res.status(200).json({ success: true, data: user })
+        return res.status(200).json({ success: true, data: user });
     } catch (err) {
-        res.status(500).json({ success: false, error: 'Server error' })
+        console.error(err);
+        res.status(500).json({ success: false, error: 'Server error2' });
     }
-}
+};
 
 exports.getProfileById = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id)
-        if (!user) {
-            return res
-                .status(404)
-                .json({ success: false, error: 'User not found' })
+        const userId = req.params?.id;
+        if (!userId) {
+            return res.status(400).json({ success: false, error: 'User ID is required' });
         }
-        res.status(200).json({ success: true, data: user })
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+
+        return res.status(200).json({ success: true, data: user });
     } catch (err) {
-        res.status(500).json({ success: false, error: 'Server error' })
+        console.error(err);
+        return res.status(500).json({ success: false, error: 'Server error' });
     }
-}
+};
 exports.boostAfterPayment = async (req, res) => {
     try {
         const user = await User.findById(req.user.id)
@@ -1749,10 +1754,9 @@ exports.blockUser = async (req, res) => {
         }
 
         // Check if the user has already blocked this person
+
         const existingBlock = await Block.findOne({ userId, blockedUserId });
-        console.log("I am existing Block ::::::::::::::::::::::::::::::",existingBlock);
         if (existingBlock) {
-            console.log(userId+ ' Blocked ',blockedUserId);
             return res
                 .status(400)
                 .json({ success: false, message: 'User already blocked' })

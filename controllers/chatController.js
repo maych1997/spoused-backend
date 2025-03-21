@@ -13,6 +13,7 @@ const { promisify } = require('util')
 const { s3Queue, notificationQueue } = require('../bullQueues')
 const mongoose = require('mongoose')
 const Seen = require('../models/Seen')
+const Swipe = require('../models/Swipe')
 const s3Client = new S3Client({
     region: 'ap-southeast-1',
     credentials: {
@@ -63,32 +64,28 @@ const fetchChat = asyncHandler(async (req, res) => {
     try {
         const userId = req.user._id;
 
+        // Fetch swiped users (users that the current user swiped on)
+        const swipedUsers = await Swipe.find({ userId });
+        const swipedUserIds = swipedUsers.map(swipe => swipe.swipedUserId.toString()); // Extract swiped user IDs
+
+        if (swipedUserIds.length === 0) {
+            return res.status(200).send([]); // If no swiped users, return empty array
+        }
+
         // Fetch chats from Redis for the current user
         const chatsData = await redisClient.lRange(`chats:${userId}`, 0, -1);
         const chats = chatsData.map(JSON.parse);
 
-        // Fetch blocked user IDs
-        const blockedUsers = await Block.find({
-            $or: [{ userId }, { blockedUserId: userId }]
-        });
-
-        const blockedUserIds = blockedUsers?.map((block) =>
-            block.userId.toString() === userId.toString()
-                ? block.blockedUserId.toString()
-                : block.userId.toString()
-        );
-
-        console.log('Blocked User IDs:', blockedUserIds);
-
-        // Filter out blocked users
+        // Filter chats to only include those where the other user is in swipedUserIds
         const filteredChats = chats.filter(chat => {
             const otherUser = chat.users.find(user => user._id.toString() !== userId.toString());
-            return otherUser && !blockedUserIds.includes(otherUser._id.toString());
+            return otherUser && swipedUserIds.includes(otherUser._id.toString());
         });
 
         // Fetch user data from Redis and format the response
-        const result = filteredChats.map(async (chat) => {
+        const result = await Promise.all(filteredChats.map(async (chat) => {
             const otherUser = chat.users.find(user => user._id.toString() !== userId.toString());
+            if (!otherUser) return null;
 
             try {
                 const cachedUserData = await redisClient.get(`user:${otherUser._id}`);
@@ -113,15 +110,14 @@ const fetchChat = asyncHandler(async (req, res) => {
                     latestMessage: chat.latestMessage,
                 };
             }
-        });
+        }));
 
-        // Wait for all promises to resolve
-        const finalResult = await Promise.all(result);
-        res.status(200).send(finalResult);
+        res.status(200).send(result.filter(Boolean)); // Remove null values
     } catch (error) {
         res.status(400).send({ message: error.message });
     }
 });
+
 
 
 
@@ -336,7 +332,6 @@ const createMessage = asyncHandler(async (req, res) => {
 
         const userId = req.user.id
         console.log('Received request to create message:')
-        console.log('Type:', type, 'Content length:', content.length)
 
         // const user = await User.findById(userId);
         // const receiverUser = await User.findById(receiverId);
@@ -345,7 +340,6 @@ const createMessage = asyncHandler(async (req, res) => {
         const user = await getCachedUser(userId)
         const receiverUser = await getCachedUser(receiverId)
         console.log('this is recievxed user')
-        console.log(receiverUser.notifications)
         console.log('this is recieved user')
         console.log('Sender:', user.fullName, 'Receiver:', receiverUser.fullName)
 
@@ -563,79 +557,70 @@ const getAllMessagesOfChat = asyncHandler(async (req, res) => {
 
 
 const getLastMessageOfChat = asyncHandler(async (req, res) => {
-    const userId = req.user._id  // Current user ID (the one making the request)
-    const otherUserId = req.params.id  // Other user ID (the person in the chat)
-    const redisKey = `chat:last:${userId}:${otherUserId}`  // Redis key for caching
+    const userId = req.user._id; // Current user ID
+    const otherUserId = req.params.id; // Other user ID
+    const redisKey = `chat:last:${userId}:${otherUserId}`; // Redis cache key
 
     try {
-        console.log(`Fetching the last message between user ${userId} and user ${otherUserId} from Redis...`)
-        // Step 1: Fetch last message from Redis
-        const cachedMessage = await redisClient.get(redisKey)
+        console.log(`Fetching last message between user ${userId} and user ${otherUserId} from Redis...`);
+
+        // Step 1: Check Redis cache
+        const cachedMessage = await redisClient.get(redisKey);
 
         if (cachedMessage) {
-            const message = JSON.parse(cachedMessage)
+            const message = JSON.parse(cachedMessage);
 
-            // Step 2: Fetch all messages from the chat where the sender is the other user (otherUserId)
-            const allMessages = await Message.find({
-                chat: message.chat,  // Get all messages for this chat
-                sender: otherUserId  // Messages sent by the other user
-            })
+            // Fetch unseen messages sent by the other user
+            const unseenMessages = await Message.countDocuments({
+                chat: message.chat,
+                sender: otherUserId,
+                createdAt: { $eq: "$updatedAt" }, // Only count unseen messages
+            });
 
-            // Step 3: Filter unseen messages where updatedAt equals createdAt (outside the query)
-            const unseenMessages = allMessages.filter(msg => {
-                return new Date(msg.updatedAt).getTime() === new Date(msg.createdAt).getTime()
-            })
-
-            // Step 4: Return last message and the count of unseen messages
             return res.status(200).json({
                 lastMessage: message,
-                numberOfUnseen: unseenMessages.length
-            })
+                numberOfUnseen: unseenMessages,
+            });
         }
 
-        // Step 5: If no cached message, fetch the last message from MongoDB
-        console.log(`Last message between user ${userId} and user ${otherUserId} not found in Redis, fetching from MongoDB...`)
+        // Step 2: Fetch last message from MongoDB if not in Redis
+        console.log(`Last message not found in Redis, fetching from MongoDB...`);
         const lastMessage = await Message.findOne({
             $or: [
                 { sender: userId, receiver: otherUserId },
                 { sender: otherUserId, receiver: userId }
             ]
-        }).sort({ createdAt: -1 })
+        }).sort({ createdAt: -1 });
 
-        if (lastMessage) {
-            console.log("find it in redis")
-            // Step 6: Cache the last message in Redis for future requests
-            await redisClient.set(redisKey, JSON.stringify(lastMessage))
-            await redisClient.expire(redisKey, 3600)  // Cache expiry: 1 hour
+        // If no last message exists, return empty response
+        if (!lastMessage) {
+            return res.status(200).json({
+                lastMessage: null,
+                numberOfUnseen: 0,
+            });
         }
 
-        // Step 7: Fetch all messages from the chat where the sender is the other user (otherUserId)
-        const allMessages = await Message.find({
-            chat: lastMessage.chat,  // Get all messages for this chat
-            sender: otherUserId  // Messages sent by the other user
-        })
+        // Step 3: Cache last message in Redis
+        await redisClient.set(redisKey, JSON.stringify(lastMessage));
+        await redisClient.expire(redisKey, 3600); // Expire in 1 hour
 
-        // Step 8: Filter unseen messages where updatedAt equals createdAt (outside the query)
-        const unseenMessages = allMessages.filter(msg => {
-            return new Date(msg.updatedAt).getTime() === new Date(msg.createdAt).getTime()
-        })
+        // Step 4: Count unseen messages
+        const unseenMessages = await Message.countDocuments({
+            chat: lastMessage.chat,
+            sender: otherUserId,
+            createdAt: { $eq: "$updatedAt" }, // Only count unseen messages
+        });
 
-        console.log('this is the response')
-        console.log({
-            lastMessage: lastMessage,
-            numberOfUnseen: unseenMessages.length
-        })
-        console.log('this is the response')
-        // Step 9: Return the last message and unseen message count
+        // Step 5: Return response
         return res.status(200).json({
-            lastMessage: lastMessage,
-            numberOfUnseen: unseenMessages.length
-        })
+            lastMessage,
+            numberOfUnseen: unseenMessages,
+        });
     } catch (error) {
-        console.error(`Error fetching last message between user ${userId} and user ${otherUserId}:`, error)
-        return res.status(500).json({ message: 'Error fetching chat details' })
+        console.error(`Error fetching last message:`, error);
+        return res.status(500).json({ message: 'Error fetching chat details' });
     }
-})
+});
 
 
 // const getLastMessageOfChat = asyncHandler(async (req, res) => {
@@ -702,7 +687,6 @@ const getLastMessageOfChat = asyncHandler(async (req, res) => {
 const markAllMessagesAsRead = asyncHandler(async (req, res) => {
     const userId = req.user._id // Assuming user information is stored in req.user
     const chatId = req.params.id
-    console.log(req.params)
     console.log(`Marking all messages for chat ${chatId} as read...`)
     try {
         console.log(`Marking all messages for chat ${chatId} as read...`)
@@ -739,8 +723,6 @@ const getLastMessageSeen = asyncHandler(async (req, res) => {
     const chatId = req.params.id
 
     console.log("this is in here get last message seen")
-    console.log(userId)
-    console.log(chatId)
 
    try {
        const seen = await Seen.find({

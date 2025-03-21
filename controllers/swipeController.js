@@ -65,7 +65,6 @@ exports.saveSwipe = async (req, res) => {
             JSON.stringify({ swipedUserId, action }),
         )
         const result = await redisClient.lRange(`swipes:${userId}`, 0, -1);
-        console.log("Swipe data in Redis:", result);
         // Check for a match (both users liked each other)
         const reverseSwipe = await Swipe.findOne({
             userId: swipedUserId,

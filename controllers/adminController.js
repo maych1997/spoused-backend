@@ -394,7 +394,7 @@ const adminController = {
     // get current admin profile
     getAdminProfile: asyncHandler(async (req, res, next) => {
         const admin = await User.findById(req.user.id)
-
+        console.log('This is admin',admin);
         res.status(200).json({
             success: true,
             data: admin,

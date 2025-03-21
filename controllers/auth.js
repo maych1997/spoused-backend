@@ -121,7 +121,6 @@ exports.registerAdmin = asyncHandler(async (req, res, next) => {
 // @access    Public
 
 exports.login = asyncHandler(async (req, res, next) => {
-    console.log(req.body)
     // const { email, password, fcm } = req.body
     const { email, password, fcm, coordinates } = req.body
     // Validate email and password presence
@@ -475,7 +474,6 @@ const email_sending = async (fulllName, email, user) => {
         // Get reset token
         const resetToken = user.generateEmailVerificationToken()
         console.log('this is the request token')
-        console.log(resetToken)
 
         console.log('this is the request token')
         // Create reset URL
@@ -684,7 +682,7 @@ exports.getMyProfile = async (req, res) => {
         }
         res.status(200).json({ success: true, data: user })
     } catch (err) {
-        res.status(500).json({ success: false, error: 'Server error' })
+        res.status(500).json({ success: false, error: 'Server error1' })
     }
 }
 
@@ -802,8 +800,6 @@ exports.getUserMatches = async (req, res) => {
         if (user.datingPreferences.partnerPreferences.gender.length !== 1) {
             console.log('Applying gender filter');
             console.log('Preferred Genders:', user.datingPreferences.partnerPreferences.gender);
-            console.log(user.datingPreferences.partnerPreferences.gender.length)
-            console.log(user.datingPreferences.partnerPreferences.gender[0])
 
             potential.gender = {
                 $in: user.datingPreferences.partnerPreferences.gender
@@ -961,9 +957,9 @@ exports.getUserMatches = async (req, res) => {
                 !swipedUserIds.includes(match._id.toString()) &&
                 !swipedMeIds.includes(match._id.toString())
         )
-        console.log('this is final after search')
-        console.log(filteredMatches)
-        console.log('this is final after search')
+        // console.log('this is final after search')
+        // console.log(filteredMatches)
+        // console.log('this is final after search')
         // -----------------------------------------------
         const { fromCm, toCm } = user.datingPreferences.partnerPreferences.basicInformation.height
         const minHeight = parseFloat(fromCm) || 0
