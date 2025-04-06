@@ -648,44 +648,50 @@ exports.useAsMainPhoto = async (req, res) => {
 }
 
 exports.deletePhoto = async (req, res) => {
-    const userId = req.user.id
-    const user = await User.findById(userId)
-
-    if (!user) {
-        return res.status(404).json({ message: 'User not found' })
-    }
-
-    const { index } = req.body
-    if (index < 0 || index >= user.photos.length) {
-        return res.status(400).json({ message: 'Invalid photo index' })
-    }
-
-    const photoUrl = user.photos[index]
-    const urlObject = new URL(photoUrl)
-    const key = urlObject.pathname.substring(1) // Remove the leading slash
-
-    const params = {
-        Bucket: process.env.AWS_S3_BUCKET_NAME_GENERATED_IMAGES,
-        Key: key
-    }
-
     try {
-        await s3Client.send(new DeleteObjectCommand(params))
-        // Photo deleted successfully from S3, now remove from user's photos array
-        user.photos.splice(index, 1)
-        await user.save()
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
 
-        res.status(200).json({
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const { index } = req.body;
+        if (!Number.isInteger(index) || index < 0 || index >= user.photos.length) {
+            return res.status(400).json({ message: 'Invalid photo index' });
+        }
+
+        const photoUrl = user.photos[index];
+        if (!photoUrl) {
+            return res.status(400).json({ message: 'Photo URL not found' });
+        }
+
+        const urlObject = new URL(photoUrl);
+        const key = urlObject.pathname.substring(1); // Remove leading slash
+
+        const params = {
+            Bucket: process.env.AWS_S3_BUCKET_NAME_GENERATED_IMAGES,
+            Key: key,
+        };
+
+        await s3Client.send(new DeleteObjectCommand(params));
+        
+        // Remove photo from user's array and save
+        user.photos.splice(index, 1);
+        await user.save();
+
+        return res.status(200).json({
             message: 'Photo deleted successfully',
-            success: true
-        })
+            success: true,
+        });
     } catch (err) {
-        console.err(err) // an error occurred
-        return res
-            .status(500)
-            .json({ message: 'Failed to delete photo from S3', success: false })
+        console.error('Error deleting photo:', err);
+        return res.status(500).json({ message: 'Failed to delete photo', success: false });
     }
-}
+};
 
 exports.uploadVideo = async (req, res) => {
     const userId = req.user.id
@@ -1299,7 +1305,6 @@ exports.getMyProfile = async (req, res) => {
     try {
         const userId = req.user?.id;
         if (!userId) {
-            console.log('I am here1');
             return res.status(400).json({ success: false, error: 'User ID is missing' });
         }
 
@@ -1310,18 +1315,13 @@ exports.getMyProfile = async (req, res) => {
         }
 
         // If travelMode.toggle is false, update the coordinates
-        console.log('I am here6');
         if (!user.travelMode?.toggle) {
-            console.log('I am here2');
             const { coordinates } = req.body;
 
             if (!coordinates || !Array.isArray(coordinates) || coordinates.length !== 2) {
-                console.log('I am here3');
                 return res.status(400).json({ success: false, error: 'Invalid coordinates' });
             }
-            console.log('I am here4');
             user.locationCoordinates = { type: 'Point', coordinates };
-            console.log('I am here5');
             await user.save();
         }
 
@@ -1679,6 +1679,7 @@ exports.uploadAndCompareFaces = async (req, res) => {
 // }
 
 exports.updateDatingPreferences = async (req, res) => {
+    console.log('I am hit');
     const userId = req.user.id // assuming 'req.user.id' contains the authenticated user's ID from middleware
 
     try {
@@ -1689,6 +1690,7 @@ exports.updateDatingPreferences = async (req, res) => {
                 .json({ success: false, error: 'User not found' })
         }
         const { datingPreferences } = req.body
+        console.log('I am hitted');
 
         // Update only the fields that are provided in the request body
         for (const [key, value] of Object.entries(datingPreferences)) {
@@ -1713,7 +1715,8 @@ exports.updateDatingPreferences = async (req, res) => {
             success: true,
             data: user.datingPreferences,
             message: 'Dating preferences updated successfully!'
-        })
+        });
+        console.log('Dating Preferences Updated SUccessfullt')
     } catch (err) {
         console.error(err)
         res.status(500).json({ success: false, error: 'Server error' })
@@ -1721,6 +1724,7 @@ exports.updateDatingPreferences = async (req, res) => {
 }
 
 exports.getDatingPreferences = async (req, res) => {
+    console.log('I am hit');
     try {
         const userId = req.user.id // assuming 'req.user.id' contains the authenticated user's ID from middleware
         const user = await User.findById(userId).select('datingPreferences')
@@ -1729,12 +1733,13 @@ exports.getDatingPreferences = async (req, res) => {
                 .status(404)
                 .json({ success: false, error: 'User not found' })
         }
-
+        console.log('I am hitted');
         res.status(200).json({
             success: true,
             data: user.datingPreferences,
             message: 'Dating preferences retrieved successfully!'
         })
+        console.log('Dating Preferences fetched SUccessfullt')
     } catch (err) {
         console.error(err)
         res.status(500).json({ success: false, error: 'Server error' })

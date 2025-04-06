@@ -2337,6 +2337,17 @@ anymatch@~3.1.2:
     normalize-path "^3.0.0"
     picomatch "^2.0.4"
 
+apn@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.npmjs.org/apn/-/apn-2.2.0.tgz"
+  integrity sha512-YIypYzPVJA9wzNBLKZ/mq2l1IZX/2FadPvwmSv4ZeR0VH7xdNITQ6Pucgh0Uw6ZZKC+XwheaJ57DFZAhJ0FvPg==
+  dependencies:
+    debug "^3.1.0"
+    http2 "https://github.com/node-apn/node-http2/archive/apn-2.1.4.tar.gz"
+    jsonwebtoken "^8.1.0"
+    node-forge "^0.7.1"
+    verror "^1.10.0"
+
 append-field@^1.0.0:
   version "1.0.0"
   resolved "https://registry.npmjs.org/append-field/-/append-field-1.0.0.tgz"
@@ -2903,6 +2914,13 @@ date-fns@2.21.1:
   version "2.21.1"
   resolved "https://registry.npmjs.org/date-fns/-/date-fns-2.21.1.tgz"
   integrity sha512-m1WR0xGiC6j6jNFAyW4Nvh4WxAi4JF4w9jRJwSI8nBmNcyZXPcP9VUQG+6gHQXAmqaGEKDKhOqAtENDC941UkA==
+
+debug@^3.1.0:
+  version "3.2.7"
+  resolved "https://registry.npmjs.org/debug/-/debug-3.2.7.tgz"
+  integrity sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==
+  dependencies:
+    ms "^2.1.1"
 
 debug@^3.2.7:
   version "3.2.7"
@@ -3914,6 +3932,11 @@ http-signature@~1.2.0:
     jsprim "^1.2.2"
     sshpk "^1.7.0"
 
+"http2@https://github.com/node-apn/node-http2/archive/apn-2.1.4.tar.gz":
+  version "3.3.6"
+  resolved "https://github.com/node-apn/node-http2/archive/apn-2.1.4.tar.gz"
+  integrity sha512-ad4u4I88X9AcUgxCRW3RLnbh7xHWQ1f5HbrXa7gEy2x4Xgq+rq+auGx5I+nUDE2YYuqteGIlbxrwQXkIaYTfnQ==
+
 https-proxy-agent@^5.0.0:
   version "5.0.1"
   resolved "https://registry.npmjs.org/https-proxy-agent/-/https-proxy-agent-5.0.1.tgz"
@@ -4187,6 +4210,22 @@ json-stringify-safe@~5.0.1:
   version "5.0.1"
   resolved "https://registry.npmjs.org/json-stringify-safe/-/json-stringify-safe-5.0.1.tgz"
   integrity sha512-ZClg6AaYvamvYEE82d3Iyd3vSSIjQ+odgjaTzRuO3s7toCdFKczob2i0zCh7JE8kWn17yvAWhUVxvqGwUalsRA==
+
+jsonwebtoken@^8.1.0:
+  version "8.5.1"
+  resolved "https://registry.npmjs.org/jsonwebtoken/-/jsonwebtoken-8.5.1.tgz"
+  integrity sha512-XjwVfRS6jTMsqYs0EsuJ4LGxXV14zQybNd4L2r0UvbVnSF9Af8x7p5MzbJ90Ioz/9TI41/hTCvznF/loiSzn8w==
+  dependencies:
+    jws "^3.2.2"
+    lodash.includes "^4.3.0"
+    lodash.isboolean "^3.0.3"
+    lodash.isinteger "^4.0.4"
+    lodash.isnumber "^3.0.3"
+    lodash.isplainobject "^4.0.6"
+    lodash.isstring "^4.0.1"
+    lodash.once "^4.0.0"
+    ms "^2.1.1"
+    semver "^5.6.0"
 
 jsonwebtoken@^9.0.0, jsonwebtoken@^9.0.2:
   version "9.0.2"
@@ -4757,6 +4796,11 @@ node-forge@^0.6.43:
   version "0.6.49"
   resolved "https://registry.npmjs.org/node-forge/-/node-forge-0.6.49.tgz"
   integrity sha512-8632osJqcHqlbmdWOvngqc0T0YV+MLSPsHFpGiQGXPe1wjhcVY3srKQOLkpypyl8w0Q5rbqzTy9Wc0hs3NSWyg==
+
+node-forge@^0.7.1:
+  version "0.7.6"
+  resolved "https://registry.npmjs.org/node-forge/-/node-forge-0.7.6.tgz"
+  integrity sha512-sol30LUpz1jQFBjOKwbjxijiE3b6pjd74YwfD0fJOKPjF+fONKb2Yg8rYgS6+bK6VDl+/wfr4IYpC7jDzLUIfw==
 
 node-forge@^0.7.6:
   version "0.7.6"
@@ -5506,6 +5550,11 @@ scheduler@^0.20.2:
     loose-envify "^1.1.0"
     object-assign "^4.1.1"
 
+semver@^5.6.0:
+  version "5.7.2"
+  resolved "https://registry.npmjs.org/semver/-/semver-5.7.2.tgz"
+  integrity sha512-cBznnQ9KjJqU67B52RMC65CMarK2600WFnbkcaiwWq3xy/5haFJlshgnpjovMVJ+Hff49d8GEn0b87C5pDQ10g==
+
 semver@^7.1.2, semver@^7.5.2, semver@^7.5.3, semver@^7.5.4, semver@^7.6.0:
   version "7.6.2"
   resolved "https://registry.npmjs.org/semver/-/semver-7.6.2.tgz"
@@ -6056,7 +6105,7 @@ vary@^1, vary@~1.1.2:
   resolved "https://registry.npmjs.org/vary/-/vary-1.1.2.tgz"
   integrity sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==
 
-verror@1.10.0:
+verror@^1.10.0, verror@1.10.0:
   version "1.10.0"
   resolved "https://registry.npmjs.org/verror/-/verror-1.10.0.tgz"
   integrity sha512-ZZKSmDAEFOijERBLkmYfJ+vmk3w+7hOLYDNkRCuRuMJGEmqYNCNLyBBFwWKVMhfwaEF3WOd0Zlw86U/WC/+nYw==

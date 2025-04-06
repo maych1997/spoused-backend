@@ -328,7 +328,7 @@ async function getCachedUser(userId) {
 
 const createMessage = asyncHandler(async (req, res) => {
     try {
-        let { chat, content, type,token,senderId,appId,channelName,userDetails,receiverId } = req.body
+        let { chat, content, type,token,receiverId,appId,channelName,userDetails,senderId } = req.body
 
         const userId = req.user.id
         console.log('Received request to create message:')
@@ -413,7 +413,7 @@ const createMessage = asyncHandler(async (req, res) => {
                 content
             })
 
-            console.log('Message created in the database:', msg._id)
+            console.log('Message created in the database:', receiverUser);
 
             // Handle notifications for text messages
             if (receiverUser.fcm.length !== 0) {
@@ -705,9 +705,9 @@ const markAllMessagesAsRead = asyncHandler(async (req, res) => {
         const seen = await Seen.create({
             seenUser: userId,
             chat: chatId,
-            type: messages[0].type,
-            content: messages[0].content,
-            message: messages[0]._id,
+            type: messages[0]?.type,
+            content: messages[0]?.content,
+            message: messages[0]?._id,
         })
         return res.status(200).json({ message: `Marked ${result.nModified} messages as read.` })
     } catch (error) {
@@ -728,9 +728,10 @@ const getLastMessageSeen = asyncHandler(async (req, res) => {
        const seen = await Seen.find({
            chat: chatId,
            seenUser: { $ne: userId }
-       }).sort({ createdAt: -1 }).limit(1)
-
+       })
+       if(seen.length!=0){
        res.status(200).send(seen[0])
+       }
    } catch (error) {
        console.error(`Error fetching last message seen for chat ${chatId}:`, error)
        res.status(500)
@@ -791,7 +792,7 @@ const instantChat = asyncHandler(async (req, res) => {
             })
         }
 
-        if (user.instantChats === 0 && !user.proAccount) {
+        if (user.instantChats === 0) {
             return res.status(400).json({
                 message: 'No more instant chat left',
                 success: false
