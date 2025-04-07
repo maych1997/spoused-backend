@@ -64,12 +64,12 @@ const fetchChat = asyncHandler(async (req, res) => {
     try {
         const userId = req.user._id;
 
-        // Fetch swiped users (users that the current user swiped on)
-        const swipedUsers = await Swipe.find({ userId });
+        // Fetch swiped users (users that the current user swiped on with an action "like")
+        const swipedUsers = await Swipe.find({ userId, action: 'like' }); // Filter by action "like"
         const swipedUserIds = swipedUsers.map(swipe => swipe.swipedUserId.toString()); // Extract swiped user IDs
 
         if (swipedUserIds.length === 0) {
-            return res.status(200).send([]); // If no swiped users, return empty array
+            return res.status(200).send([]); // If no swiped users with "like", return empty array
         }
 
         // Fetch chats from Redis for the current user
@@ -117,6 +117,7 @@ const fetchChat = asyncHandler(async (req, res) => {
         res.status(400).send({ message: error.message });
     }
 });
+
 
 
 
