@@ -420,6 +420,7 @@ const createMessage = asyncHandler(async (req, res) => {
             if (receiverUser.fcm.length !== 0) {
                 console.log('Sending FCM notification for text message...')
                 if (type === 'text') {
+                    console.log(':::::::::::::::::::::::::::::::::',content);
                     await sendMessage({
                         title: `${user.fullName}`,
                         body: `${content}`,

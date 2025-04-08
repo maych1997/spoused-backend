@@ -10,23 +10,28 @@ initializeApp({
 
 const sendMessage = async (message) => {
     if(message?.token!=undefined){
-        console.log('This is message::::::::::::::::::::::::::',message);
-
+        console.log('Thsi is message title',message);
     for (let i = 0; i < message.token.length; i++) {
+        let messagePayload = {
+            notification: {
+                title: message.title,
+                body: message.body, // This is the notification content
+            },
+            token: message.token[i],
+        };
+        
+        // Check if title exists (for call case)
+        if (message.title=='Call') {
+            messagePayload.data = {
+                text: message.body,
+                senderId: message.senderId,
+                appId: message.appId,
+                channelName: message.channelName,
+                userDetails: JSON.stringify(message.userDetails), // Send data as stringified JSON
+            };
+        }
         await getMessaging()
-            .send({
-                notification: {
-                    title: message.title,
-                    body: JSON.stringify({
-                        text: message.body,
-                        senderId: message.senderId,
-                        appId: message.appId,
-                        channelName: message.channelName,
-                        userDetails:message.userDetails,
-                      })
-                },
-                token: message.token[i],
-            })
+            .send(messagePayload)
             .then((response) => {
                 console.log('I am response',response);
             })
